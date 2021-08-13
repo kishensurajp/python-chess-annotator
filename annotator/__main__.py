@@ -773,6 +773,11 @@ def analyze_game(game, arg_gametime, enginepath, threads):
 
         judgment = node.comment
 
+        side_to_play = "white" if prev_node.board().turn else "black"
+        if annotation_side != "both" and annotation_side != side_to_play:
+            node = prev_node
+            continue
+
         if needs_annotation(judgment):
             # Get the engine judgment of the played move in this position
             judgment = judge_move(prev_node.board(), node.move, engine,
@@ -787,7 +792,7 @@ def analyze_game(game, arg_gametime, enginepath, threads):
             # Print some debugging info
             debug_print(node, judgment)
         else:
-            node.comment = None
+            node.comment = judgment["playedcomment"]
 
         node = prev_node
 
