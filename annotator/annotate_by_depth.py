@@ -797,10 +797,9 @@ def main():
 
 
 if __name__ == "__main__":
+    os.chdir("/Users/kishensurajp/general/chess/python_annotator/")
     main()
 
-# TODO
-# figure out how to download based on API from lichess
 
 # datetime.datetime(2012,4,1,0,0).timestamp()
 import lichess.api
