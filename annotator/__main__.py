@@ -1,7 +1,7 @@
 #!/usr/bin/env python3 -W ignore::DeprecationWarning
 
-__author__ = "Ryan Delaney"
-__email__ = "ryan.delaney@gmail.com"
+__author__ = "Kishen"
+__email__ = "pkishensuraj@gmail.com"
 __copyright__ = """© Copyright 2016-2018 Ryan Delaney. All rights reserved.
  This work is distributed WITHOUT ANY WARRANTY whatsoever; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -30,6 +30,8 @@ NEEDS_ANNOTATION_THRESHOLD = 7.5
 MAX_SCORE = 10000
 MAX_CPL = 2000
 SHORT_PV_LEN = 10
+USER = "mistborn17"
+STOCKFISH14 = "/opt/homebrew/bin/stockfish"
 
 # Initialize Logging Module
 logger = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ def parse_args():
                         metavar="FILE.pgn")
     parser.add_argument("--engine", "-e",
                         help="analysis engine (default: %(default)s)",
-                        default="stockfish")
+                        default=STOCKFISH14)
     parser.add_argument("--gametime", "-g",
                         help="how long to spend on each game \
                             (default: %(default)s)",
@@ -165,6 +167,10 @@ def needs_annotation(judgment):
     Returns a boolean indicating whether a node with the given evaluations
     should have an annotation added
     """
+
+    if judgment is None:
+        return False
+
     best = winning_chances(int(judgment["besteval"]))
     played = winning_chances(int(judgment["playedeval"]))
     delta = best - played
@@ -316,6 +322,22 @@ def add_annotation(node, judgment):
     # Add a Numeric Annotation Glyph (NAG) according to how weak the played
     # move was
     node.nags = get_nags(judgment)
+
+def add_score(node, judgment):
+    """
+    Add evaluations and the engine's primary variation as annotations to a node
+    """
+    # prev_node = node.parent
+
+    # Add the engine evaluation
+    # if judgment["bestmove"] != node.move:
+    node.comment = judgment["playedcomment"]
+
+    # Add a comment to the end of the variation explaining the game state
+
+    # var_end_node = prev_node.variation(judgment["pv"][0]).end()
+    # var_end_node.comment = judgment["playedcomment"]# var_end_comment(var_end_node.board(), judgment)
+
 
 
 def classify_fen(fen, ecodb):
@@ -498,7 +520,7 @@ def classify_opening(game):
         return node.root(), root_node, ply_count
 
 
-def add_acpl(game, root_node):
+def add_acpl(game, root_node, annotation_side):
     """
     Takes a game and a root node, and adds PGN headers with the computed ACPL
     (average centipawn loss) for each player. Returns a game with the added
@@ -511,6 +533,11 @@ def add_acpl(game, root_node):
     while not node == root_node:
         prev_node = node.parent
 
+        side_to_play = "white" if prev_node.board().turn else "black"
+        if annotation_side != "both" and annotation_side != side_to_play:
+            node = prev_node
+            continue
+
         judgment = node.comment
         delta = judgment["besteval"] - judgment["playedeval"]
 
@@ -521,8 +548,10 @@ def add_acpl(game, root_node):
 
         node = prev_node
 
-    node.root().headers["WhiteACPL"] = str(round(acpl(white_cpl)))
-    node.root().headers["BlackACPL"] = str(round(acpl(black_cpl)))
+    if annotation_side != "black": # white or both
+        node.root().headers["WhiteACPL"] = str(round(acpl(white_cpl)))
+    if annotation_side != "white": # black or both
+        node.root().headers["BlackACPL"] = str(round(acpl(black_cpl)))
 
     return node.root()
 
@@ -532,7 +561,7 @@ def get_total_budget(arg_gametime):
 
 
 def get_pass1_budget(total_budget):
-    return total_budget / 10
+    return total_budget / 7
 
 
 def get_pass2_budget(total_budget, pass1_budget):
@@ -627,10 +656,17 @@ def analyze_game(game, arg_gametime, enginepath, threads):
     ###########################################################################
     game = clean_game(game)
 
+    annotation_side = "both"
+    if game.headers["White"] == USER:
+        annotation_side = "white"
+    elif game.headers["Black"] == USER:
+        annotation_side = "black"
+
     ###########################################################################
     # Attempt to classify the opening and calculate the game length
     ###########################################################################
     game, root_node, ply_count = classify_opening(game)
+    # root_node starts from the end of the opening, not the beginning of the game
 
     ###########################################################################
     # Perform game analysis
@@ -653,6 +689,8 @@ def analyze_game(game, arg_gametime, enginepath, threads):
     pass1_budget = get_pass1_budget(budget)
 
     time_per_move = get_time_per_move(pass1_budget, ply_count)
+    if annotation_side != "both":
+        time_per_move = 2 * time_per_move # get more time in case of one side play
 
     logger.debug("Pass 1 budget is %i seconds, with %f seconds per move",
                  pass1_budget, time_per_move)
@@ -665,7 +703,16 @@ def analyze_game(game, arg_gametime, enginepath, threads):
 
     node = game.end()
     while not node == root_node:
+
         prev_node = node.parent
+
+        # node.board().turn == true -> white to play
+        # node.board().turn == false -> black to play
+
+        side_to_play = "white" if prev_node.board().turn else "black"
+        if annotation_side != "both" and annotation_side != side_to_play:
+            node = prev_node
+            continue
 
         # Get the engine judgment of the played move in this position
         judgment = judge_move(prev_node.board(), node.move, engine,
@@ -684,7 +731,7 @@ def analyze_game(game, arg_gametime, enginepath, threads):
         node = prev_node
 
     # Calculate the average centipawn loss (ACPL) for each player
-    game = add_acpl(game, root_node)
+    game = add_acpl(game, root_node, annotation_side)
 
     # Second pass:
     #
