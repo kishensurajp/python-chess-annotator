@@ -2,12 +2,6 @@
 
 __author__ = "Kishen"
 __email__ = "pkishensuraj@gmail.com"
-__copyright__ = """© Copyright 2016-2018 Ryan Delaney. All rights reserved.
- This work is distributed WITHOUT ANY WARRANTY whatsoever; without even the
- implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- See the README file for additional terms and conditions on your use of this
- software.
-"""
 
 import os
 import argparse
@@ -18,6 +12,8 @@ import chess
 import chess.pgn
 import chess.uci
 import chess.variant
+import lichess.api
+from lichess.format import SINGLE_PGN
 
 # Constants
 ERROR_THRESHOLD = {
@@ -32,6 +28,7 @@ SHORT_PV_LEN = 10
 USER = "mistborn17"
 STOCKFISH14 = "/opt/homebrew/bin/stockfish"
 DEPTH_DEFAULT = 15
+NUMBER_OF_LICHESS_GAMES = 1
 
 # Initialize Logging Module
 logger = logging.getLogger(__name__)
@@ -54,8 +51,10 @@ def parse_args():
                     'annotations to standard output')
     parser.add_argument("--file", "-f",
                         help="input PGN file",
-                        required=True,
-                        metavar="FILE.pgn")
+                        metavar="file.pgn")
+    parser.add_argument("--pgnoutfile", "-o",
+                        help="output PGN file",
+                        metavar="pgn_out_file.pgn")
     parser.add_argument("--engine", "-e",
                         help="analysis engine (default: %(default)s)",
                         default=STOCKFISH14)
@@ -759,6 +758,21 @@ def main():
     engine = args.engine.split()
 
     pgnfile = args.file
+
+    if pgnfile is None:
+        pgnfile = os.path.join(os.getcwd(), "lichess_game.pgn")
+        pgn = lichess.api.user_games(USER, max=NUMBER_OF_LICHESS_GAMES, format=SINGLE_PGN)
+        with open(pgnfile, 'w+') as f:
+            f.write(pgn)
+
+    pgn_out_file = args.pgnoutfile
+    if pgn_out_file is None:
+        pgn_out_file = os.path.join(os.getcwd(), "lichess_game_out.pgn")
+
+    print(pgn_out_file)
+    if os.path.isfile(pgn_out_file):
+        os.remove(pgn_out_file)
+
     try:
         with open(pgnfile) as pgn:
             for game in iter(lambda: chess.pgn.read_game(pgn), None):
@@ -773,7 +787,9 @@ def main():
                                     .format(type(e)))
                     raise e
                 else:
-                    print(analyzed_game, '\n')
+                    with open(pgn_out_file, "a") as f:
+                        f.write(str(analyzed_game))
+                    # print(analyzed_game, '\n')
     except PermissionError:
         errormsg = "Input file not readable. Aborting..."
         logger.critical(errormsg)
@@ -785,3 +801,6 @@ if __name__ == "__main__":
 
 # TODO
 # figure out how to download based on API from lichess
+
+# datetime.datetime(2012,4,1,0,0).timestamp()
+import lichess.api

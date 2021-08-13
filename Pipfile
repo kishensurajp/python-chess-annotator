@@ -10,6 +10,7 @@ pytest-pudb = "*"
 
 [packages]
 python-chess = "==0.27.3"
+python-lichess = "*"
 
 [requires]
 python_version = "3.9.4"
