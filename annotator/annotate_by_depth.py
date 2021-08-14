@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -W ignore::DeprecationWarning
+#!/usr/bin/env /usr/local/opt/python@3.9/bin/python3 -W ignore::DeprecationWarning
 
 __author__ = "Kishen"
 __email__ = "pkishensuraj@gmail.com"
@@ -63,6 +63,10 @@ def parse_args():
                             (default: %(default)s)",
                         type=int,
                         default=1)
+    parser.add_argument("--numgames", "-n",
+                        help="number of lichess games, useful only in lichess mode",
+                        type=int,
+                        default=NUMBER_OF_LICHESS_GAMES)
     parser.add_argument("--depth", "-d",
                         help="depth for use by the engine \
                                 (default: %(default)s)",
@@ -761,15 +765,17 @@ def main():
 
     if pgnfile is None:
         pgnfile = os.path.join(os.getcwd(), "lichess_game.pgn")
-        pgn = lichess.api.user_games(USER, max=NUMBER_OF_LICHESS_GAMES, format=SINGLE_PGN)
+
+    if not os.path.isfile(pgnfile):
+        pgn = lichess.api.user_games(USER, max=args.numgames, format=SINGLE_PGN)
         with open(pgnfile, 'w+') as f:
             f.write(pgn)
 
     pgn_out_file = args.pgnoutfile
     if pgn_out_file is None:
         pgn_out_file = os.path.join(os.getcwd(), "lichess_game_out.pgn")
-
     print(pgn_out_file)
+
     if os.path.isfile(pgn_out_file):
         os.remove(pgn_out_file)
 
@@ -789,7 +795,7 @@ def main():
                 else:
                     with open(pgn_out_file, "a") as f:
                         f.write(str(analyzed_game))
-                    # print(analyzed_game, '\n')
+
     except PermissionError:
         errormsg = "Input file not readable. Aborting..."
         logger.critical(errormsg)
@@ -800,6 +806,11 @@ if __name__ == "__main__":
     os.chdir("/Users/kishensurajp/general/chess/python_annotator/")
     main()
 
-
-# datetime.datetime(2012,4,1,0,0).timestamp()
-import lichess.api
+# Bash function
+# function liano(){
+#     current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+#     input_pgn="/Users/kishensurajp/general/chess/python_annotator/file_${current_time}.pgn"
+#     out_pgn="/Users/kishensurajp/general/chess/python_annotator/file_out_${current_time}.pgn"
+#     /Users/kishensurajp/general/chess/python_annotator/python-chess-annotator/annotator/annotate_by_depth.py -f "${input_pgn}" -o "${out_pgn}" -n $1 -d 15
+#     /Applications/ScidvsMac.app/Contents/MacOS/scid ~/general/chess/scid/my_games_imp/my_games_imp.si4 "${out_pgn}"
+# }
