@@ -322,6 +322,14 @@ def add_annotation(node, judgment):
 
     # Add a Numeric Annotation Glyph (NAG) according to how weak the played
     # move was
+    # nag = get_nags(judgment)
+    # if nag == [chess.pgn.NAG_BLUNDER]:
+    #     node.comment = str("??") + str(node.comment)
+    # elif nag == [chess.pgn.NAG_MISTAKE]:
+    #     node.comment = str("?") + str(node.comment)
+    # elif nag == [chess.pgn.NAG_DUBIOUS_MOVE]:
+    #     node.comment = str("?!") + str(node.comment)
+
     node.nags = get_nags(judgment)
 
 
@@ -794,7 +802,7 @@ def main():
                     raise e
                 else:
                     with open(pgn_out_file, "a") as f:
-                        f.write(str(analyzed_game))
+                        f.write(str(analyzed_game) + "\n\n")
 
     except PermissionError:
         errormsg = "Input file not readable. Aborting..."
