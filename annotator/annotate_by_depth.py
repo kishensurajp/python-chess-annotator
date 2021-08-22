@@ -321,15 +321,6 @@ def add_annotation(node, judgment):
     var_end_node.comment = var_end_comment(var_end_node.board(), judgment)
 
     # Add a Numeric Annotation Glyph (NAG) according to how weak the played
-    # move was
-    # nag = get_nags(judgment)
-    # if nag == [chess.pgn.NAG_BLUNDER]:
-    #     node.comment = str("??") + str(node.comment)
-    # elif nag == [chess.pgn.NAG_MISTAKE]:
-    #     node.comment = str("?") + str(node.comment)
-    # elif nag == [chess.pgn.NAG_DUBIOUS_MOVE]:
-    #     node.comment = str("?!") + str(node.comment)
-
     node.nags = get_nags(judgment)
 
 
@@ -774,6 +765,7 @@ def main():
     if pgnfile is None:
         pgnfile = os.path.join(os.getcwd(), "lichess_game.pgn")
 
+    # download if the file is absent
     if not os.path.isfile(pgnfile):
         pgn = lichess.api.user_games(USER, max=args.numgames, format=SINGLE_PGN)
         with open(pgnfile, 'w+') as f:
