@@ -223,6 +223,8 @@ def judge_move(board, played_move, engine, info_handler, arg_depth):
     # If the played move matches the engine bestmove, we're done
     if played_move == judgment["bestmove"]:
         judgment["playedeval"] = judgment["besteval"]
+        judgment["playedcomment"] = judgment["bestcomment"]
+
     else:
         # get the engine evaluation of the played move
         board.push(played_move)
@@ -233,12 +235,9 @@ def judge_move(board, played_move, engine, info_handler, arg_depth):
         # We invert the sign since we're now evaluating from the opponent's
         # perspective
         judgment["playedeval"] = -eval_numeric(info_handler)
-
         # Take the played move off the stack (reset the board)
         board.pop()
-
-    # Annotate the played move
-    judgment["playedcomment"] = eval_human(not board.turn, info_handler)
+        judgment["playedcomment"] = eval_human(not board.turn, info_handler)
 
     return judgment
 
