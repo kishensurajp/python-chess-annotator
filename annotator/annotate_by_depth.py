@@ -72,6 +72,9 @@ def parse_args():
                                 (default: %(default)s)",
                         type=int,
                         default=DEPTH_DEFAULT)
+    parser.add_argument("--output_append", "-oa",
+                        action="store_true",
+                        )
     parser.add_argument("--verbose", "-v", help="increase verbosity",
                         action="count")
 
@@ -775,7 +778,7 @@ def main():
         pgn_out_file = os.path.join(os.getcwd(), "lichess_game_out.pgn")
     print(pgn_out_file)
 
-    if os.path.isfile(pgn_out_file):
+    if not args.output_append and os.path.isfile(pgn_out_file):
         os.remove(pgn_out_file)
 
     try:
