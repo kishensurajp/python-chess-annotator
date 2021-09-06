@@ -14,6 +14,7 @@ import chess.uci
 import chess.variant
 import lichess.api
 from lichess.format import SINGLE_PGN
+import time
 
 # Constants
 ERROR_THRESHOLD = {
@@ -27,7 +28,7 @@ MAX_CPL = 2000
 SHORT_PV_LEN = 10
 USER = "mistborn17"
 STOCKFISH14 = "/opt/homebrew/bin/stockfish"
-DEPTH_DEFAULT = 15
+DEPTH_DEFAULT = 10
 NUMBER_OF_LICHESS_GAMES = 1
 
 # Initialize Logging Module
@@ -782,8 +783,17 @@ def main():
         os.remove(pgn_out_file)
 
     try:
+
+        total_num_games = 0
         with open(pgnfile) as pgn:
+            for _ in iter(lambda: chess.pgn.read_game(pgn), None):
+                total_num_games += 1
+
+        with open(pgnfile) as pgn:
+            game_num = 1
+
             for game in iter(lambda: chess.pgn.read_game(pgn), None):
+                start_time = time.time()
                 try:
                     analyzed_game = analyze_game(game, args.depth,
                                                  engine, args.threads)
@@ -797,6 +807,9 @@ def main():
                 else:
                     with open(pgn_out_file, "a") as f:
                         f.write(str(analyzed_game) + "\n\n")
+                num_format = len(str(total_num_games))
+                print(f"Analysing game {str(game_num).zfill(num_format)}/{total_num_games}, time taken {(time.time() - start_time):.1f} seconds")
+                game_num += 1
 
     except PermissionError:
         errormsg = "Input file not readable. Aborting..."
